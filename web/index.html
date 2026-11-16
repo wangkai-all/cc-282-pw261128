@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>数据质量处置平台 · 隔离 / 补偿 / 快照</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">◆</span>
+      <div>
+        <h1>数据质量处置平台</h1>
+        <p class="subtitle">版本账本 · 隔离追踪 · 补偿/快照决策 · 下游消费模拟 · 对账</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <span id="latestVersionBadge" class="badge badge-neutral">最新版本 v0</span>
+      <button class="btn btn-primary" id="btnSeed">一键载入演示场景</button>
+      <button class="btn btn-ghost" id="btnReset">清空全部数据</button>
+      <button class="btn btn-ghost" id="btnRefresh">刷新</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- 左栏：版本与原始台账 -->
+    <section class="col col-left">
+      <div class="card">
+        <h2>① 版本账本（只追加，坏版本永不删除）</h2>
+        <div id="versionList" class="version-list empty">暂无版本</div>
+      </div>
+
+      <div class="card">
+        <h2>② 原始接入记录（不可变）</h2>
+        <div class="form-row">
+          <button class="btn btn-small" id="btnAddRecord">新增一条接入记录</button>
+        </div>
+        <div class="table-wrap">
+          <table id="rawTable">
+            <thead>
+              <tr><th>record_id</th><th>分区</th><th>指标</th><th>金额</th><th>事件时间</th><th>状态</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="rawForm" class="inline-form hidden">
+          <input id="rfId" placeholder="record_id（留空自动生成）" />
+          <input id="rfStream" placeholder="流，如 orders" value="orders" />
+          <input id="rfPartition" placeholder="分区，如 华东" />
+          <input id="rfMetric" placeholder="指标，如 销售额" />
+          <input id="rfAmount" type="number" step="0.01" placeholder="金额" />
+          <input id="rfTime" placeholder="事件时间 ISO" />
+          <button class="btn btn-small btn-primary" id="rfSubmit">接入</button>
+          <button class="btn btn-small btn-ghost" id="rfCancel">取消</button>
+        </div>
+        <div class="form-row">
+          <button class="btn btn-small" id="btnPublishInc">把未发布记录发布为新增量</button>
+          <button class="btn btn-small" id="btnSnapshot">发布全量快照</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>③ 质检任务（迟到结果进围栏，不撤销新发布）</h2>
+        <div class="form-row">
+          <select id="qcVersion"></select>
+          <button class="btn btn-small" id="btnQcCreate">创建质检任务</button>
+        </div>
+        <div id="qcList" class="qc-list empty">暂无质检任务</div>
+      </div>
+    </section>
+
+    <!-- 中栏：缺陷、隔离与处置 -->
+    <section class="col col-mid">
+      <div class="card">
+        <h2>④ 坏数据注入与隔离</h2>
+        <div class="form-grid">
+          <select id="defRecord"></select>
+          <input id="defCorrect" type="number" step="0.01" placeholder="正确金额" />
+          <input id="defNote" placeholder="问题说明" />
+          <button class="btn btn-small btn-warn" id="btnInject">注入坏数据嫌疑</button>
+        </div>
+        <div id="defectList" class="defect-list empty">暂无坏数据登记</div>
+      </div>
+
+      <div class="card">
+        <h2>⑤ 隔离单与影响面（分区 / 指标 / 版本 / 消费者）</h2>
+        <div id="issueList" class="issue-list empty">暂无隔离单</div>
+        <div id="impactPanel" class="impact-panel hidden"></div>
+      </div>
+
+      <div class="card">
+        <h2>⑥ 处置决策：补偿记录 vs 完整新快照</h2>
+        <div class="form-row">
+          <button class="btn btn-small" id="btnPlan">对比两种策略（基于勾选隔离单）</button>
+        </div>
+        <div id="planPanel" class="plan-panel hidden"></div>
+      </div>
+    </section>
+
+    <!-- 右栏：消费者、投递模拟与对账 -->
+    <section class="col col-right">
+      <div class="card">
+        <h2>⑦ 消费者注册</h2>
+        <div class="form-grid">
+          <input id="cnName" placeholder="消费者名称" />
+          <select id="cnMode">
+            <option value="idempotent">幂等（按键去重）</option>
+            <option value="non_idempotent">非幂等（重试会重复）</option>
+          </select>
+          <button class="btn btn-small btn-primary" id="btnRegister">注册</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>⑧ 下游接收模拟</h2>
+        <div id="consumerList" class="consumer-list empty">暂无消费者</div>
+      </div>
+
+      <div class="card">
+        <h2>⑨ 对账：消费者数值 vs 系统真值</h2>
+        <div class="form-row">
+          <button class="btn btn-small" id="btnReconcile">立即对账</button>
+        </div>
+        <div id="reconcilePanel" class="reconcile-panel">尚未对账</div>
+      </div>
+
+      <div class="card">
+        <h2>⑩ 审计事件流</h2>
+        <div id="eventLog" class="event-log empty">暂无事件</div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
